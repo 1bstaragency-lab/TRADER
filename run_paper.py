@@ -35,6 +35,8 @@ def main():
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--symbol", default="NQ.v.0")
     ap.add_argument("--config", default="config/solana_paper.yaml")
+    ap.add_argument("--risk", default="config/risk.yaml", help="risk gate config ('none' to disable)")
+    ap.add_argument("--size-by-risk", action="store_true", help="size each trade from max_loss_per_trade_usd")
     a = ap.parse_args()
 
     if a.market == "solana":
@@ -44,7 +46,9 @@ def main():
         SolanaPaperTrader(cfg).run()
         return
 
+    from proplab.core.risk import RiskLimits
     from proplab.futures.forward_test import DatabentoLiveFeed, ForwardTester, ReplayFeed
+    risk = None if a.risk == "none" else RiskLimits.from_yaml(a.risk)
     strat = get(a.strategy or "orb")
     params = {**strat.DEFAULT_PARAMS, **json.loads(a.params)}
     with open("config/instruments.yaml") as f:
@@ -52,11 +56,12 @@ def main():
     if a.replay:
         df = load_bars(a.replay)
         out = "forward_test/futures_replay"
-        ft = ForwardTester(strat, params, inst, out_dir=out, qty=a.qty, label="dealer-replay")
+        ft = ForwardTester(strat, params, inst, out_dir=out, qty=a.qty, label="dealer-replay",
+                           risk=risk, size_by_risk=a.size_by_risk)
         ft.run(ReplayFeed(df, a.start))
-        print(f"\n{len(ft.trades)} paper trades -> {out}/trades.csv")
+        print(f"\n{len(ft.trades)} paper trades, {len(ft.blocked)} blocked by the risk gate -> {out}/trades.csv")
     elif a.live:
-        ForwardTester(strat, params, inst, qty=a.qty).run(DatabentoLiveFeed(a.symbol))
+        ForwardTester(strat, params, inst, qty=a.qty, risk=risk, size_by_risk=a.size_by_risk).run(DatabentoLiveFeed(a.symbol))
     else:
         ap.error("futures needs --replay FILE or --live")
 

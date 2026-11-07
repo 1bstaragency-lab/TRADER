@@ -23,6 +23,7 @@ weeks of paper trading.
 | 6. Research log | Every test logged *before* it runs, tamper-evident, counts your variations | `research_log/log.jsonl` |
 | 7. Prop sizing | Every-start-day eval simulation at 1/2/3/5 micros vs coin flip, with your firm's rules | `config/prop_firms/*.yaml` |
 | 8. Paper trade | Same strategy code + same fill rules, live data, Discord alerts | `run_paper.py` |
+| 8b. Risk gate | Every entry must PASS: max loss per trade, daily loss stop, trades/day, entry window, reward/risk; optional sizing from max loss | `config/risk.yaml`, `--size-by-risk` |
 | 9. Live | **Not built yet, on purpose.** Broker-side bracket orders, daily loss stop, kill switch | phase 2 |
 
 ## Setup
@@ -95,6 +96,19 @@ python run_paper.py solana --config config/solana_paper.yaml
 - **Survivorship bias.** Historical data mostly contains coins that survived, so backtests look better than reality. Trust the paper trader's numbers over the backtest.
 - **Real swaps add costs paper can't see:** MEV/sandwich attacks, failed transactions and latency. Expect live results to be worse than paper.
 - **Keys:** never put a wallet private key in this repo or in a chat. Live Solana trading (phase 2) will use a separate hot wallet that only ever holds money you can afford to lose.
+
+## Related: stock day-trading skills
+
+The per-order PASS/BLOCK risk gate and the size-from-max-loss idea come from
+[Jakeschincariol/day-trader-skill](https://github.com/Jakeschincariol/day-trader-skill)
+(MIT), re-implemented here for futures and Solana in `proplab/core/risk.py`.
+That repo is a separate Claude Code skill pack for **US stocks** (scanner, news,
+Alpaca/IBKR connectors with per-order approval). If you also want stocks,
+install it as its own plugin rather than mixing it into this code:
+
+```
+/plugin marketplace add Jakeschincariol/day-trader-skill
+```
 
 ## Adding a strategy
 

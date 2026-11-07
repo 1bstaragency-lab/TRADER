@@ -3,6 +3,8 @@ strategy: sol_momentum
 params: {}                 # override strategy params here, e.g. {stop_pct: 0.10}
 notional_usd: 25           # paper $ per trade
 max_open_positions: 3
+daily_loss_limit_usd: 50     # stop opening new paper trades for the (UTC) day after this loss
+min_reward_risk: 1.0
 slippage_bps: 300          # slippage tolerance used when quoting
 tx_cost_usd: 0.05          # network + priority fee per swap
 poll_seconds: 60

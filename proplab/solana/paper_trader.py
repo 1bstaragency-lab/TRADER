@@ -133,8 +133,22 @@ class SolanaPaperTrader:
             self.acted.add(key)
             self.open(p, s, float(df["close"].iloc[-1]))
 
+    def daily_pnl(self) -> float:
+        if not os.path.exists(self.trades_path):
+            return 0.0
+        t = pd.read_csv(self.trades_path)
+        today = pd.Timestamp.now(tz="UTC").date()
+        return float(t.loc[pd.to_datetime(t["exit_time"], utc=True).dt.date == today, "pnl_usd"].sum())
+
     def open(self, p: dict, s, ref_close: float):
         usd = self.cfg.get("notional_usd", 25)
+        limit = self.cfg.get("daily_loss_limit_usd")
+        if limit is not None and self.daily_pnl() <= -float(limit):
+            notify.send(f"[solana-paper] RISK BLOCK {p['name']}: daily loss limit ${limit} hit (UTC day)")
+            return
+        if s["target_dist"] / s["stop_dist"] < self.cfg.get("min_reward_risk", 1.0):
+            notify.send(f"[solana-paper] RISK BLOCK {p['name']}: reward/risk below minimum")
+            return
         try:
             q = jupiter.buy_quote_usd(p["base_mint"], usd, p["decimals"], self.cfg.get("slippage_bps", 300))
         except Exception as exc:

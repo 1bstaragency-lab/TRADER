@@ -1,0 +1,10 @@
+# Risk gate used by the paper traders (and, later, the live trader - no bypass).
+# Keep every number BELOW your prop firm's limits so the firm's rule never triggers first.
+max_loss_per_trade_usd: 200
+daily_loss_limit_usd: 500
+max_trades_per_day: 3
+max_contracts: 5
+max_open_positions: 1
+entry_window: ["09:30", "15:30"]   # New York time
+flat_by: "15:55"
+min_reward_risk: 1.0

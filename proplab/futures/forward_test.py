@@ -21,6 +21,7 @@ import pandas as pd
 
 from .. import notify
 from ..core.engine import NY, PaperPosition, to_ns
+from ..core.risk import DayState, RiskLimits, check_order, contracts_for_risk
 
 
 @dataclass
@@ -64,8 +65,13 @@ class DatabentoLiveFeed:
 
 class ForwardTester:
     def __init__(self, strategy, params: dict, inst, history: pd.DataFrame | None = None,
-                 out_dir: str = "forward_test/futures", qty: int = 1, keep_days: int = 5, label: str = "dealer"):
+                 out_dir: str = "forward_test/futures", qty: int = 1, keep_days: int = 5, label: str = "dealer",
+                 risk: RiskLimits | None = None, size_by_risk: bool = False):
+        """risk: optional RiskLimits gate - every entry must PASS it.
+        size_by_risk: size each trade from risk.max_loss_per_trade_usd instead of a fixed qty."""
         self.strategy, self.params, self.inst, self.qty, self.label = strategy, params, inst, qty, label
+        self.risk, self.size_by_risk, self.day = risk, size_by_risk, DayState()
+        self.blocked: list[dict] = []
         self.df = history.copy() if history is not None else pd.DataFrame(
             columns=["open", "high", "low", "close", "volume"], index=pd.DatetimeIndex([], tz=NY))
         self.keep_days = keep_days
@@ -73,6 +79,7 @@ class ForwardTester:
         os.makedirs(out_dir, exist_ok=True)
         self.trades_path = os.path.join(out_dir, "trades.csv")
         self.bars_path = os.path.join(out_dir, "bars.csv")
+        self.cur_qty = qty
         self.pending = None      # signal waiting for the next bar's open
         self.pos = None
         self.pos_meta = None
@@ -97,10 +104,10 @@ class ForwardTester:
             s = self.pending
             self.pending = None
             exit_ns = int(to_ns([s["exit_time"]])[0])
-            if ns <= exit_ns:
+            if ns <= exit_ns and self._risk_ok(b, s):
                 self.pos = PaperPosition(s["side"], b.open, s["stop_dist"], s["target_dist"], exit_ns, self.inst)
-                self.pos_meta = {"entry_time": b.ts, "side": int(s["side"])}
-                notify.send(f"[{self.label}] PAPER ENTRY {'LONG' if s['side'] == 1 else 'SHORT'} {self.qty} @ "
+                self.pos_meta = {"entry_time": b.ts, "side": int(s["side"]), "qty": self.cur_qty}
+                notify.send(f"[{self.label}] PAPER ENTRY {'LONG' if s['side'] == 1 else 'SHORT'} {self.cur_qty} @ "
                             f"{self.pos.entry:.2f} stop {self.pos.stop:.2f} target {self.pos.target:.2f} ({b.ts:%H:%M})")
 
         if self.pos is not None:
@@ -114,10 +121,32 @@ class ForwardTester:
             if len(last) and self.pos is None and self.pending is None:
                 self.pending = last.iloc[0].to_dict()
 
+    def _risk_ok(self, b: Bar, s: dict) -> bool:
+        inst = self.inst
+        qty = self.qty
+        if self.risk is not None and self.size_by_risk:
+            qty = contracts_for_risk(self.risk.max_loss_per_trade_usd, s["stop_dist"], inst, self.risk.max_contracts)
+        self.cur_qty = qty
+        if self.risk is None:
+            return True
+        cost = 2 * inst.commission_per_side * qty
+        loss = (s["stop_dist"] + inst.tick * (inst.slip_ticks[0] + inst.slip_ticks[1])) * inst.point_value * qty + cost
+        reward = s["target_dist"] * inst.point_value * qty - cost
+        ok, why = check_order(self.risk, self.day, b.ts, qty, loss, reward)
+        if not ok:
+            self.blocked.append({"time": b.ts.isoformat(), "reasons": why})
+            notify.send(f"[{self.label}] RISK BLOCK ({b.ts:%H:%M}): " + "; ".join(why))
+            return False
+        self.day.trades += 1
+        self.day.open_positions += 1
+        return True
+
     def _close(self, b: Bar, out: dict):
         row = {"entry_time": self.pos_meta["entry_time"].isoformat(), "exit_time": b.ts.isoformat(),
-               "side": self.pos_meta["side"], "qty": self.qty, "entry": round(self.pos.entry, 2),
-               "exit": round(out["exit"], 2), "kind": out["kind"], "pnl_$": round(out["pnl"] * self.qty, 2)}
+               "side": self.pos_meta["side"], "qty": self.pos_meta["qty"], "entry": round(self.pos.entry, 2),
+               "exit": round(out["exit"], 2), "kind": out["kind"], "pnl_$": round(out["pnl"] * self.pos_meta["qty"], 2)}
+        if self.risk is not None:
+            self.day.on_exit(row["pnl_$"], self.risk)
         self.trades.append(row)
         new = not os.path.exists(self.trades_path)
         with open(self.trades_path, "a", newline="") as f:
