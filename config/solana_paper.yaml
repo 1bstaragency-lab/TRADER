@@ -1,0 +1,19 @@
+# Solana memecoin PAPER trader settings. No wallet, no real orders.
+strategy: sol_momentum
+params: {}                 # override strategy params here, e.g. {stop_pct: 0.10}
+notional_usd: 25           # paper $ per trade
+max_open_positions: 3
+slippage_bps: 300          # slippage tolerance used when quoting
+tx_cost_usd: 0.05          # network + priority fee per swap
+poll_seconds: 60
+discover_every_min: 10
+watchlist_size: 12         # GeckoTerminal free tier ~30 req/min: keep this small
+discover_from: [trending_pools, new_pools]
+safety:
+  require_mint_authority_revoked: true
+  require_freeze_authority_revoked: true
+  min_liquidity_usd: 50000
+  min_pool_age_min: 30
+  max_top10_excl_largest_pct: 30
+  max_roundtrip_loss_pct: 6.0
+  roundtrip_test_usd: 50

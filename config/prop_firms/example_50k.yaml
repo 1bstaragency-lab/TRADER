@@ -1,0 +1,17 @@
+# EXAMPLE RULES ONLY - these are typical numbers, not any specific firm's.
+# Copy this file, rename it after your firm, and fill in their EXACT current rules.
+# The biggest differences between firms: how the drawdown trails (end-of-day vs intraday),
+# whether it locks, daily loss limits, and consistency rules.
+name: example-50k
+account_size: 50000
+profit_target: 3000
+max_drawdown: 2000
+drawdown_type: eod_trailing        # eod_trailing | intraday_trailing | static
+drawdown_lock_at: 50000            # trailing floor stops rising at this balance (null = never locks)
+daily_loss_limit: 1000             # null if the firm has none
+daily_loss_action: stop_day        # stop_day (flattened for the day) | fail (account lost)
+consistency_max_day_pct: 50        # best day must be <= 50% of total profit to pass (null = no rule)
+min_trading_days: 2
+max_micros: 50
+max_days: 60                       # attempts not finished in 60 trading days count as "timeout"
+eval_fee: 100                      # $ per attempt (or per month)

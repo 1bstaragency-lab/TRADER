@@ -1,0 +1,28 @@
+# Costs per instrument. THESE ARE EXAMPLES - replace with your broker's / prop firm's
+# real all-in commission (broker + exchange + clearing + NFA) before trusting results.
+MNQ:
+  type: futures
+  name: MNQ
+  tick: 0.25
+  point_value: 2.0
+  commission_per_side: 0.62
+  slip_ticks: {entry: 1, stop: 2, target: 0, time: 1}
+
+NQ:
+  type: futures
+  name: NQ
+  tick: 0.25
+  point_value: 20.0
+  commission_per_side: 2.25
+  slip_ticks: {entry: 1, stop: 2, target: 0, time: 1}
+
+# Solana memecoins: you trade a fixed $ amount per trade, long only.
+# Memecoin slippage is LARGE and grows with trade size vs. pool liquidity.
+# The paper trader measures real slippage from live Jupiter quotes - update these from it.
+SOL_MEME:
+  type: spot
+  name: solana-memecoin
+  notional_usd: 100
+  fee_frac: 0.0025
+  slip_frac: {entry: 0.01, stop: 0.02, target: 0.01, time: 0.01}
+  fixed_usd_per_tx: 0.05
