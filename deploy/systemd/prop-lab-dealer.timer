@@ -1,0 +1,9 @@
+[Unit]
+Description=Start the futures paper trader at 9:00 New York time on weekdays
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09:00:00 America/New_York
+Persistent=false
+
+[Install]
+WantedBy=timers.target

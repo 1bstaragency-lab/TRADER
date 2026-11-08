@@ -1,0 +1,12 @@
+[Unit]
+Description=prop-lab Solana memecoin PAPER trader (no real orders)
+After=network-online.target
+
+[Service]
+WorkingDirectory=__REPO__
+ExecStart=__REPO__/.venv/bin/python run_paper.py solana --config config/solana_paper.yaml
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

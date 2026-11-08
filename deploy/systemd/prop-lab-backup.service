@@ -1,0 +1,7 @@
+[Unit]
+Description=Back up prop-lab paper trades and research log
+
+[Service]
+Type=oneshot
+WorkingDirectory=__REPO__
+ExecStart=/bin/bash -c 'mkdir -p ~/prop-lab-backups && tar czf ~/prop-lab-backups/backup-$(date +%%F).tgz forward_test research_log reports 2>/dev/null || true; ls -1t ~/prop-lab-backups/*.tgz | tail -n +31 | xargs -r rm --'

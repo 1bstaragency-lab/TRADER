@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily backup of prop-lab results (keeps 30 days)
+
+[Timer]
+OnCalendar=*-*-* 17:00:00 America/New_York
+Persistent=true
+
+[Install]
+WantedBy=timers.target

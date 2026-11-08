@@ -35,6 +35,31 @@ cp .env.example .env                                  # then fill in keys - neve
 pytest                                                # all tests should pass
 ```
 
+## Check every connection
+
+```bash
+python scripts/check_setup.py
+```
+
+This tests Python, packages, `.env`, the engine, Discord, GeckoTerminal, Solana RPC,
+Jupiter and Databento. Each line says PASS, FAIL (with the fix) or SKIP. It places
+no orders and buys nothing.
+
+## Run the paper traders on a server (24/7)
+
+Netlify and Vercel can't run this: they host websites, not always-on programs.
+Use a small Ubuntu VPS (Hetzner, DigitalOcean or Vultr, about $5-7/month):
+
+```bash
+git clone https://github.com/1bstaragency-lab/TRADER.git && cd TRADER
+bash deploy/setup_ubuntu.sh
+```
+
+That installs everything and adds three background services:
+- the futures dealer, weekdays at 9:00 ET
+- the Solana paper trader, 24/7, restarting itself if it crashes
+- a daily backup of your results
+
 ## Try it on fake data first
 
 These runs check that the tools behave. They say nothing about real markets.

@@ -1,0 +1,11 @@
+[Unit]
+Description=prop-lab futures PAPER trader "dealer" (no real orders) - stops itself at 16:05 ET
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__REPO__
+# Change --qty to the size the prop simulation picked, or use --size-by-risk
+ExecStart=__REPO__/.venv/bin/python run_paper.py futures --live --qty 1
+Restart=on-failure
+RestartSec=60
